@@ -39,7 +39,51 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
-### Command Line Interface
+### Unified CLI (PB_scripts/run_pb.py)
+
+The unified CLI provides a single entry point for all participatory budgeting algorithms:
+
+```bash
+# Run EES with cardinal (approval) utilities and ADD-OPT completion
+python PB_scripts/run_pb.py data.pb -a ees -u cardinal -c add-opt
+
+# Run MES (waterflow) with cost utilities
+python PB_scripts/run_pb.py data.pb -a mes -u cost -c none
+
+# Run EES with ADD-OPT-SKIP heuristic in exhaustive mode
+python PB_scripts/run_pb.py data.pb -a ees -u cardinal -c add-opt-skip --exhaustive
+```
+
+**CLI Options:**
+| Option | Values | Description |
+|--------|--------|-------------|
+| `<input_file>` | `<file.pb>` | Input Pabulib file (required, positional) |
+| `-a, --algorithm` | `ees`, `mes` | Algorithm: EES or MES/Waterflow |
+| `-u, --utility` | `cardinal`, `cost` | Utility function |
+| `-c, --completion` | `none`, `add-one`, `add-opt`, `add-opt-skip` | Completion heuristic |
+| `-e, --exhaustive` | flag | Continue until all projects selected |
+| `-o, --output` | `<file.csv>` | Custom output path |
+
+**Note:** MES only supports `none` and `add-one` completion methods. ADD-OPT and ADD-OPT-SKIP are EES-specific.
+
+### SLURM Batch Submission
+
+For cluster computing, use the unified submission script:
+
+```bash
+# Submit EES jobs with cardinal utilities and ADD-OPT completion
+./submission_scripts/submit_pb.sh -a ees -u cardinal -c add-opt -d /path/to/pb/files
+
+# Submit MES jobs with cost utilities in exhaustive mode
+./submission_scripts/submit_pb.sh -a mes -u cost -c add-one -e -d /path/to/pb/files
+
+# With custom partition and time limit
+./submission_scripts/submit_pb.sh -a ees -u cardinal -c add-opt-skip -d /data -p long -t 02:00:00
+```
+
+### Module CLI
+
+You can also use the module directly for EES:
 
 ```bash
 # Run EES with approval (cardinal) utility
@@ -54,15 +98,6 @@ python -m scalable_proportional_pb run --input data.pb --completion add-opt-skip
 # Run with exhaustive completion (explores all budget levels)
 python -m scalable_proportional_pb run --input data.pb --completion add-one --exhaustive
 ```
-
-**CLI Options:**
-| Option | Values | Description |
-|--------|--------|-------------|
-| `--input` | `<file.pb>` | Input Pabulib file (required) |
-| `--utility` | `approval`, `cost` | Utility function (default: `approval`) |
-| `--completion` | `none`, `add-one`, `add-opt`, `add-opt-skip` | Completion heuristic (default: `none`) |
-| `--exhaustive` | flag | Continue completion until all projects selected |
-| `--output` | `<file.csv>` | Custom output path |
 
 ### Python API
 
@@ -220,7 +255,7 @@ pytest tests/ --cov=scalable_proportional_pb
 Scalable_Proportional_PB/
 ├── src/scalable_proportional_pb/
 │   ├── __init__.py          # Public API exports
-│   ├── __main__.py          # CLI entry point
+│   ├── __main__.py          # Module CLI entry point
 │   ├── types.py             # Election, EESOutcome, Project
 │   ├── ees.py               # Algorithm 1: Exact Equal Shares
 │   ├── gpc_cardinal.py      # Algorithm 2: GreedyProjectChange (cardinal)
@@ -229,9 +264,40 @@ Scalable_Proportional_PB/
 │   ├── add_opt_uniform.py   # Algorithm 5: ADD-OPT (uniform)
 │   ├── completion.py        # Completion heuristics
 │   └── pabulib_io.py        # Pabulib file I/O
+├── PB_scripts/
+│   ├── run_pb.py            # Unified CLI for EES and MES
+│   └── core/
+│       ├── cli.py           # CLI utilities and results handling
+│       └── mes.py           # MES/Waterflow wrappers (uses pabutools)
+├── submission_scripts/
+│   └── submit_pb.sh         # Unified SLURM submission script
 ├── tests/                   # Test suite
+├── results/                 # Output directory for experiment results
 ├── pyproject.toml           # Package configuration
 └── README.md
+```
+
+### Results Directory Structure
+
+Results are organized by algorithm, utility, and completion method:
+
+```
+results/
+├── ees/
+│   ├── cardinal/
+│   │   ├── none/
+│   │   ├── add-one/
+│   │   ├── add-opt/
+│   │   ├── add-opt-skip/
+│   │   └── add-opt_exhaustive/
+│   └── cost/
+│       └── ...
+└── mes/
+    ├── cardinal/
+    │   ├── none/
+    │   └── add-one/
+    └── cost/
+        └── ...
 ```
 
 ---
